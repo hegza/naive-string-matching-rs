@@ -1,0 +1,9 @@
+[package]
+name = "rust-string-matching"
+version = "0.1.0"
+authors = ["Henri Lunnikivi <henri.lunnikivi@gmail.com>"]
+
+[dependencies]
+ocl = "*"
+time = "*"
+

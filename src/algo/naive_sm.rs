@@ -1,5 +1,3 @@
-use algo::*;
-use algo::measure::Measure;
 use ocl::{core, ProQue, Buffer, Kernel};
 use std::i32;
 
@@ -44,7 +42,7 @@ fn create_naive_kernel(text: &[u8], pattern: &[u8]) -> (Kernel, Buffer<i32>) {
     let n = text.len();
     let m = pattern.len();
 
-    let kernel_string = read_file("data/naive.c");
+    let kernel_string = super::super::read_file("kernel/naive.c");
 
     let ocl_pq = ProQue::builder()
         .src( kernel_string )

@@ -9,7 +9,7 @@ const COEFF: i32 = 2;
 
 fn opencl_test( item_count: usize ) -> TestResult {
 
-    let kernel_string = read_file("data/test.c");
+    let kernel_string = super::read_file("data/test.c");
 
     let ocl_pq = ProQue::builder()
         .src( kernel_string )

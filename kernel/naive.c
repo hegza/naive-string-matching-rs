@@ -19,5 +19,3 @@ __kernel void naive_sm(
 	}
 
 }
-
-

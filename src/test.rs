@@ -1,20 +1,19 @@
 #![allow(dead_code)]
 
-use algo::*;
 use algo::measure::Measure;
 
 use ocl::{util, core, ProQue, Buffer};
 
 const COEFF: i32 = 2;
 
-fn opencl_test( item_count: usize ) -> TestResult {
+fn opencl_test( item_count: usize ) {
 
     let kernel_string = super::read_file("data/test.c");
 
     let ocl_pq = ProQue::builder()
         .src( kernel_string )
         .dims([item_count])
-        .build().expect("Build ProQue");    
+        .build().expect("Build ProQue");
 
 
     print!("Creating on-device buffers... ");
@@ -49,17 +48,17 @@ fn opencl_test( item_count: usize ) -> TestResult {
     measure_opencl_compute_time.stop();
 
     println!( "{}", measure_opencl_compute_time.get_message() );
-    
+
 
     // Download the results
     let mut results_vector = vec![0i32; item_count];
     result_buffer.read(&mut results_vector).enq().unwrap();
 
-    TestResult{success: true, total_time: measure_opencl_compute_time.duration() + measure_kernel_create.duration() + measure_buffering.duration()}
+    //TestResult{success: true, total_time: measure_opencl_compute_time.duration() + measure_kernel_create.duration() + measure_buffering.duration()}
 
 }
 
-fn cpu_test( item_count: usize ) -> TestResult {
+fn cpu_test( item_count: usize ) {
 
     print!("Reserving memory...");
 
@@ -80,7 +79,7 @@ fn cpu_test( item_count: usize ) -> TestResult {
 
     println!( "{}", measure_cpu_compute.get_message() );
 
-    TestResult{success: true, total_time: measure_ram.duration() + measure_cpu_compute.duration()}
+    // TestResult{success: true, total_time: measure_ram.duration() + measure_cpu_compute.duration()}
 
 }
 
@@ -103,4 +102,3 @@ fn naive_string_matching_is_working() {
     assert!( naive_string_matching_cpu(String::from("abcd"), String::from("bcd")) );
     assert!( !naive_string_matching_cpu(String::from("abc"), String::from("cba")) );
 }
-

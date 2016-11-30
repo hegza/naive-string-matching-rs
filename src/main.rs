@@ -1,24 +1,22 @@
 #![allow(unused_must_use)]
-#![allow(dead_code)]
 
 extern crate ocl;
 extern crate time;
-
 extern crate clap;
+
 pub mod file_io;
 mod algo;
 mod test;
 
 pub use file_io::*;
-use algo::measure::Measure;
-use clap::{Arg, App};
 use std::io::stdout;
+use clap::{Arg, App};
 use std::io::prelude::*;
-use time::Duration;
+use std::io::{self};
 
 fn main() {
 
-    let matches = App::new("GPU String Matching")
+    let params = App::new("GPU String Matching")
         .version("0.1")
         .author("Lunnikivi H. <henri.lunnikivi@gmail.com>")
         .about("Counts the instances of a pattern in a text. Example: rust-string-matching cat data/genome/ecoli.txt")
@@ -48,108 +46,57 @@ fn main() {
 
 
     // Read TEXT from a file
-    let text_file = matches.value_of("text").unwrap_or("data/genome/ecoli.txt");
-    stdout().flush();
+    let text_file = params.value_of("text").unwrap_or("data/genome/ecoli.txt");
     print!("Loading the text of {} to heap... ", text_file);
+    stdout().flush();
     let text = read_file( text_file );
     println!("done.");
 
 
     // Define the pattern to be searched for
-    let pattern_str = matches.value_of("pattern").unwrap_or("cat");
+    let pattern_str = params.value_of("pattern").unwrap_or("cat");
     let pattern: &[u8] = pattern_str.as_bytes();
 
     // Parse repeat count
-    let repeat_count = matches.value_of("repeat_count").unwrap_or("10").parse::<usize>().unwrap();
-
+    let repeat_count = params.value_of("repeat_count").unwrap_or("10").parse::<usize>().unwrap();
 
     println!("Searching for instances of \"{}\" in {}", pattern_str, text_file);
 
-    let cpu_result = elaborate( "Naive SM on the CPU",
-        &algo::naive_match_cpu, text.as_bytes(), pattern, repeat_count );
 
-    let gpu_result = elaborate( "Naive SM on the GPU",
-        &algo::naive_match_gpu, text.as_bytes(), pattern, repeat_count );
+    // Initialize test cases
+    let cpu_fn = algo::naive_match_cpu;
+    let gpu_fn = algo::naive_match_gpu;
 
+    let cpu_test_case = algo::StringMatchSuite::create(
+        "Naive SM on the CPU",
+        &cpu_fn,
+        text.as_bytes(), pattern,
+        repeat_count);
+
+    let gpu_test_case = algo::StringMatchSuite::create(
+        "Naive SM on the GPU",
+        &gpu_fn,
+        text.as_bytes(), pattern,
+        repeat_count);
+
+
+    // Run test cases
+    print!("{}", cpu_test_case.description());
+    stdout().flush();
+    let cpu_result = cpu_test_case.execute();
+    println!("{}", cpu_result.elaborate());
+
+    print!("{}", gpu_test_case.description());
+    stdout().flush();
+    let gpu_result = gpu_test_case.execute();
+    println!("{}", gpu_result.elaborate());
 
     // Write output
-    if let Some(output_filepath) = matches.value_of("output_file") {
-        let content = format!("{:?} {:?}\n", cpu_result, gpu_result);
-
+    if let Some(output_filepath) = params.value_of("output_file") {
+        let content = format!(
+            "cpu_average_exec_time, gpu_average_exec_time\n{:?}, {:?}\n",
+            cpu_result, gpu_result);
         write_file(output_filepath, &content);
     }
 
 }
-
-fn elaborate<F>(message: &str, test_case: &F, text: &[u8], pattern: &[u8], repeat_count: usize) -> (bool, usize)
-    where F: Fn(&[u8], &[u8]) -> usize {
-
-    print!("Computing {} (x{:?})... ", message, repeat_count);
-    stdout().flush();
-    let total_duration = repeat_testcase( test_case, text, pattern, repeat_count );
-    let average_run = total_duration / repeat_count as i32;
-    println!("done (averaging {:?} microseconds)", average_run.num_microseconds().unwrap());
-
-    (true, average_run.num_microseconds().unwrap() as usize)
-
-}
-
-fn repeat_testcase<F>(test_case: &F, text: &[u8], pattern: &[u8], repeat_count: usize) -> time::Duration
-    where F: Fn(&[u8], &[u8]) -> usize {
-
-    let mut match_counts = vec![0; repeat_count];
-    let mut nanos: std::vec::Vec<u32> = vec![0; repeat_count];
-    for i in 0..repeat_count {
-        let mut measure_cpu = Measure::start();
-        match_counts[i] = test_case(text, pattern);
-        measure_cpu.stop();
-
-        nanos[i] = measure_cpu.duration().num_nanoseconds().unwrap() as u32;
-    }
-
-    // Coalesce
-    let mut total_duration = Duration::nanoseconds(0);
-    for i in 0..repeat_count {
-        total_duration = total_duration + Duration::nanoseconds(nanos[i] as i64);
-    }
-
-    return total_duration;
-
-}
-
-/*
-fn kmp_gpu_testcase(text: &[u8], pattern: &[u8]) {
-    // Compute prefix array
-    print!("Computing the prefix array for {:?} (1-thread CPU)... ", pattern);
-    stdout().flush();
-
-    let mut measure_prefix_computation = Measure::start();
-    let prefix = algo::kmp_compute_prefix_function( pattern );
-    measure_prefix_computation.stop();
-
-    println!("done ({:?} micros)", measure_prefix_computation.duration().num_microseconds().unwrap());
-
-
-    // TODO: Tee multipass ratkaisu, MapReduce vois toimia
-
-
-    print!("Computing matches on the GPU using KMP... ");
-    stdout().flush();
-
-    let mut measure_gpu = Measure::start();
-    let mut matches = algo::kmp_match_gpu(text, pattern, &prefix);
-    measure_gpu.stop();
-    println!("done ({:?} micros).", measure_gpu.duration().num_microseconds().unwrap());
-
-    print!("Deduplicating results vector... ");
-    stdout().flush();
-
-    let mut measure_dedup = Measure::start();
-    matches.dedup();
-    measure_dedup.stop();
-    println!("done ({:?} micros)", measure_dedup.duration().num_microseconds().unwrap());
-
-
-    println!("{} matches found.", matches.len()-1);
-}
-*/

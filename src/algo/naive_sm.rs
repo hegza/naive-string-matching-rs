@@ -32,7 +32,7 @@ fn create_naive_kernel(text: &[u8], pattern: &[u8]) -> (Kernel, Buffer<i32>) {
 
     let ocl_pq = ProQue::builder()
         .src( kernel_string )
-        .dims([n]) // workgroup
+        .dims([n])
         .build().expect("Build ProQue");
 
     // Convert input data into on-device buffers
@@ -73,6 +73,5 @@ pub fn naive_match_gpu(text: &[u8], pattern: &[u8]) -> usize {
     let match_count = matches.len()-1;
 
     return match_count;
-    //TestResult{success: true, total_time: measure_opencl_compute_time.duration() + measure_kernel_create.duration() + measure_buffering.duration()}
 
 }

@@ -2,11 +2,8 @@ __kernel void naive_sm(
 		__private int const m,
 		__global char const* const text,
 		__global char const* const pattern,
-		__global int* const result
-		/*__local float *sharedData*/)
+		__global int* const result)
 {
-
-	// __local float shared_data[32]; // shared between a 32 item workgroup
 
 	uint const idx = get_global_id(0);
 	result[idx] = idx;

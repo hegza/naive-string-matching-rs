@@ -60,17 +60,15 @@ pub fn naive_match_gpu(text: &[u8], pattern: &[u8]) -> usize {
 
     let (kernel, result_buffer) = create_naive_kernel(text, pattern);
 
+    // Execute the string matching
     kernel.enq().unwrap();
 
     // Download the results
     let mut results_vector = vec![0i32; text.len()];
     result_buffer.read(&mut results_vector).enq().unwrap();
 
-    let mut matches = results_vector;
-
-    //print!("Deduplicating results vector... ");
-    matches.dedup();
-    let match_count = matches.len()-1;
+    results_vector.dedup();
+    let match_count = results_vector.len()-1;
 
     return match_count;
 

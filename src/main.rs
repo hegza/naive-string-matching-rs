@@ -49,7 +49,8 @@ fn main() {
     let text_file = params.value_of("text").unwrap_or("data/genome/ecoli.txt");
     print!("Loading the text of {} to heap... ", text_file);
     stdout().flush();
-    let text = read_file( text_file );
+    let file_contents = read_file( text_file );
+    let text: &[u8] = file_contents.as_bytes();
     println!("done.");
 
 
@@ -64,19 +65,19 @@ fn main() {
 
 
     // Initialize test cases
-    let cpu_fn = algo::naive_match_cpu;
+    let cpu_fn = algo::rk_match_cpu;
     let gpu_fn = algo::naive_match_gpu;
 
     let cpu_test_case = algo::StringMatchSuite::create(
         "Naive SM on the CPU",
         &cpu_fn,
-        text.as_bytes(), pattern,
+        text, pattern,
         repeat_count);
 
     let gpu_test_case = algo::StringMatchSuite::create(
         "Naive SM on the GPU",
         &gpu_fn,
-        text.as_bytes(), pattern,
+        text, pattern,
         repeat_count);
 
 
@@ -95,7 +96,8 @@ fn main() {
     if let Some(output_filepath) = params.value_of("output_file") {
         let content = format!(
             "cpu_average_exec_time, gpu_average_exec_time\n{:?}, {:?}\n",
-            cpu_result, gpu_result);
+            cpu_result.average_run.num_microseconds().unwrap(),
+            gpu_result.average_run.num_microseconds().unwrap());
         write_file(output_filepath, &content);
     }
 

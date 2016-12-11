@@ -1,7 +1,7 @@
 use ocl::{core, ProQue, Buffer, Kernel};
 use std::i32;
 
-pub fn naive_match_cpu( text: &[u8], pattern: &[u8] ) -> usize {
+pub fn match_cpu( text: &[u8], pattern: &[u8] ) -> usize {
 
     // Note: both the book and rust use inclusive lower bound but the book uses inclusive upper
     // bound while rust uses exclusive upper bound for for loops
@@ -23,7 +23,7 @@ pub fn naive_match_cpu( text: &[u8], pattern: &[u8] ) -> usize {
 
 }
 
-fn create_naive_kernel(text: &[u8], pattern: &[u8]) -> (Kernel, Buffer<i32>) {
+pub fn create_kernel_and_results_buffer(text: &[u8], pattern: &[u8]) -> (Kernel, Buffer<i32>) {
 
     let n = text.len();
     let m = pattern.len();
@@ -56,9 +56,9 @@ fn create_naive_kernel(text: &[u8], pattern: &[u8]) -> (Kernel, Buffer<i32>) {
 
 }
 
-pub fn naive_match_gpu(text: &[u8], pattern: &[u8]) -> usize {
+pub fn match_gpu(text: &[u8], pattern: &[u8], kernel_buffer: Option<(Kernel, Buffer<i32>)>) -> usize {
 
-    let (kernel, result_buffer) = create_naive_kernel(text, pattern);
+    let (kernel, result_buffer) = kernel_buffer.unwrap_or(create_kernel_and_results_buffer(text, pattern));
 
     // Execute the string matching
     kernel.enq().unwrap();
@@ -67,9 +67,17 @@ pub fn naive_match_gpu(text: &[u8], pattern: &[u8]) -> usize {
     let mut results_vector = vec![0i32; text.len()];
     result_buffer.read(&mut results_vector).enq().unwrap();
 
-    results_vector.dedup();
-    let match_count = results_vector.len()-1;
-
+    let mut match_count = 0;
+    for r in results_vector {
+        if r == 0 {
+            match_count += 1;
+        }
+    }
+    
     return match_count;
 
+}
+
+pub fn match_gpu_full(text: &[u8], pattern: &[u8]) -> usize {
+    return match_gpu(text, pattern, None);
 }
